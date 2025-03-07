@@ -38,6 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Store hotkey references to prevent deallocation
     private var toggleVisibilityHotKey: EventHotKeyRef?
     private var screenshotHotKey: EventHotKeyRef?
+    private var processHotKey: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     
     // Screenshot manager reference
@@ -52,6 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Register global hotkeys
         registerHotKeys()
+        registerSolutionHotKey() // Add processing hotkey
         
         // Set up local event monitor for key events within the app
         setupLocalEventMonitor()
@@ -64,6 +66,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         if let hotKeyRef = screenshotHotKey {
+            UnregisterEventHotKey(hotKeyRef)
+        }
+        
+        if let hotKeyRef = processHotKey {
             UnregisterEventHotKey(hotKeyRef)
         }
         
@@ -81,26 +87,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeyHandlers.removeAll()
     }
     
+    // MARK: - Window Setup
+    
     private func setupInvisibleWindow() {
-        // Create window with transparent properties
-        let contentRect = NSRect(x: 100, y: 100, width: 500, height: 400)
+        // Define a larger initial size for the window
+        let contentRect = NSRect(x: 100, y: 100, width: 600, height: 500)
         window = NSWindow(
             contentRect: contentRect,
-            styleMask: [.borderless, .fullSizeContentView],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         
-        // Configure window for invisibility
+        // Configure window properties
         window.isOpaque = false
         window.backgroundColor = NSColor.clear
-        window.hasShadow = false
+        window.hasShadow = true
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 400, height: 300) // Set a minimum size
         
-        // Create rounded corners and visual effect
+        // Create visual effect view
         let visualEffectView = NSVisualEffectView()
         visualEffectView.material = .hudWindow
         visualEffectView.state = .active
@@ -109,7 +118,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         visualEffectView.layer?.cornerRadius = 12
         visualEffectView.layer?.masksToBounds = true
         
-        // Set content view controller
+        // Set up the content view with SwiftUI
         let contentView = NSHostingView(rootView: MainContentView())
         visualEffectView.addSubview(contentView)
         contentView.translatesAutoresizingMaskIntoConstraints = false
@@ -122,18 +131,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         window.contentView = visualEffectView
         
-        // Hide standard window buttons
+        // Optional: Hide standard window buttons if you want a custom look
         window.standardWindowButton(.closeButton)?.isHidden = true
         window.standardWindowButton(.miniaturizeButton)?.isHidden = true
         window.standardWindowButton(.zoomButton)?.isHidden = true
         
-        // Show window
+        // Show the window
         window.center()
         window.makeKeyAndOrderFront(nil)
         
         // Enable screen capture protection
         window.sharingType = .none
     }
+    
+    // MARK: - Hotkey Registration
     
     private func registerHotKeys() {
         // Install a single event handler for all hotkeys
@@ -172,6 +183,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
+    private func registerSolutionHotKey() {
+        // Register Cmd+Enter for processing screenshots (action ID = 3)
+        registerHotKey(
+            keyCode: UInt32(kVK_Return),
+            modifiers: UInt32(cmdKey),
+            actionID: 3
+        )
+        
+        // Store the handler
+        hotKeyHandlers[3] = {
+            DispatchQueue.main.async {
+                let screenshots = ScreenshotManager.shared.screenshots
+                let language = "python" // Ideally, get from UI state
+                SolutionState.shared.processScreenshots(screenshots, language: language)
+            }
+        }
+    }
+    
     private func registerHotKey(keyCode: UInt32, modifiers: UInt32, actionID: UInt32) {
         var hotKeyRef: EventHotKeyRef?
         var gMyHotKeyID = EventHotKeyID()
@@ -194,15 +223,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 toggleVisibilityHotKey = hotKeyRef
             } else if actionID == 2 {
                 screenshotHotKey = hotKeyRef
+            } else if actionID == 3 {
+                processHotKey = hotKeyRef
             }
         } else {
             print("Failed to register hotkey: \(status)")
         }
     }
     
+    // MARK: - Event Monitoring
+    
     private func setupLocalEventMonitor() {
         localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            // Handle arrow keys for window movement when combined with command key
             if event.modifierFlags.contains(.command) {
                 switch event.keyCode {
                 case UInt16(kVK_LeftArrow):
@@ -229,70 +261,65 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    // MARK: - Window Actions
+    // MARK: - Hotkey Actions
     
     func toggleWindowPreservingFocus() {
-        print("Toggling window visibility with focus preservation")
-        // Store current focused app before toggling
+        // Store the currently active application
         previousApp = NSWorkspace.shared.frontmostApplication
         
-        toggleWindowVisibility()
-        
-        // Return focus to previous app
-        if let previousApp = previousApp {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                previousApp.activate()
+        // Toggle visibility
+        isWindowVisible.toggle()
+        if isWindowVisible {
+            window.orderFrontRegardless()
+            window.makeKey()
+        } else {
+            window.orderOut(nil)
+            // Restore focus to the previous app
+            if let app = previousApp {
+                app.activate(options: .activateIgnoringOtherApps)
             }
         }
     }
     
-    func toggleWindowVisibility() {
-        isWindowVisible.toggle()
-        
-        if isWindowVisible {
-            window.makeKeyAndOrderFront(nil)
-            window.alphaValue = 1.0
-        } else {
-            window.alphaValue = 0.0
-            window.orderOut(nil)
+    func takeScreenshot() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.screenshotManager.captureScreenshot(
+                hideWindow: {
+                    self.window.orderOut(nil)
+                },
+                showWindow: {
+                    if self.isWindowVisible {
+                        self.window.orderFrontRegardless()
+                    }
+                }
+            )
         }
     }
     
-    func hideWindow() {
-        window.alphaValue = 0.0
-        window.orderOut(nil)
+    // MARK: - Window Movement
+    
+    private func moveWindowLeft() {
+        var frame = window.frame
+        frame.origin.x -= 10
+        window.setFrame(frame, display: true, animate: true)
     }
     
-    func showWindow() {
-        window.makeKeyAndOrderFront(nil)
-        window.alphaValue = 1.0
+    private func moveWindowRight() {
+        var frame = window.frame
+        frame.origin.x += 10
+        window.setFrame(frame, display: true, animate: true)
     }
     
-    func takeScreenshot() {
-        // Use the screenshot manager to take a screenshot
-        screenshotManager.captureScreenshot(
-            hideWindow: { [weak self] in self?.hideWindow() },
-            showWindow: { [weak self] in self?.showWindow() }
-        )
+    private func moveWindowUp() {
+        var frame = window.frame
+        frame.origin.y += 10
+        window.setFrame(frame, display: true, animate: true)
     }
     
-    func moveWindowLeft() {
-        guard let frame = window?.frame else { return }
-        window.setFrame(NSRect(x: frame.origin.x - 20, y: frame.origin.y, width: frame.width, height: frame.height), display: true)
-    }
-    
-    func moveWindowRight() {
-        guard let frame = window?.frame else { return }
-        window.setFrame(NSRect(x: frame.origin.x + 20, y: frame.origin.y, width: frame.width, height: frame.height), display: true)
-    }
-    
-    func moveWindowUp() {
-        guard let frame = window?.frame else { return }
-        window.setFrame(NSRect(x: frame.origin.x, y: frame.origin.y + 20, width: frame.width, height: frame.height), display: true)
-    }
-    
-    func moveWindowDown() {
-        guard let frame = window?.frame else { return }
-        window.setFrame(NSRect(x: frame.origin.x, y: frame.origin.y - 20, width: frame.width, height: frame.height), display: true)
+    private func moveWindowDown() {
+        var frame = window.frame
+        frame.origin.y -= 10
+        window.setFrame(frame, display: true, animate: true)
     }
 }

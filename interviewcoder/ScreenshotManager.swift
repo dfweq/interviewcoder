@@ -151,6 +151,12 @@ class ScreenshotManager: ObservableObject {
             return false
         }
     }
+    
+    // Add this method to the ScreenshotManager class
+    func getImagesFromScreenshots() -> [NSImage] {
+        return screenshots.map { $0.image }
+    }
+
 }
 
 // MARK: - Screen Capture Engine
@@ -285,4 +291,5 @@ class CaptureStreamOutput: NSObject, SCStreamOutput {
         
         return NSImage(cgImage: cgImage, size: NSSize(width: CGFloat(cgImage.width), height: CGFloat(cgImage.height)))
     }
+    
 }
