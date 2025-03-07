@@ -32,6 +32,9 @@ struct MainContentView: View {
                         Text("Interview Coder")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false) // Prevent title truncation
+                            .layoutPriority(1) // Give title higher priority
                         
                         Spacer()
                         
@@ -46,117 +49,84 @@ struct MainContentView: View {
     
     // Compact view with minimal instructions in a single line
     private var compactView: some View {
-        HStack(spacing: 8) {
-            // Hotkey pills in single line
-            Group {
-                CompactKeyPill(key: "Cmd+H", action: "Screenshot")
-                CompactKeyPill(key: "Cmd+B", action: "Toggle")
-                CompactKeyPill(key: "Cmd+Return", action: "Process")
-                CompactKeyPill(key: "Cmd+R", action: "Reset")
-                
-                if !screenshotManager.screenshots.isEmpty {
-                    CompactKeyPill(key: "Cmd+G", action: "Retry")
-                }
+        HStack(spacing: 10) {
+            // Hotkey pills in single line without scrolling
+            CompactKeyPill(key: "Cmd+H", action: "Screenshot")
+            CompactKeyPill(key: "Cmd+B", action: "Toggle")
+            CompactKeyPill(key: "Cmd+Return", action: "Process")
+            CompactKeyPill(key: "Cmd+R", action: "Reset")
+            
+            if !screenshotManager.screenshots.isEmpty {
+                CompactKeyPill(key: "Cmd+G", action: "Retry")
             }
             
-            // Divider if screenshots exist
+            // Always show the divider and count when there are screenshots
             if !screenshotManager.screenshots.isEmpty {
+                // Divider for screenshots count
                 Divider()
                     .background(Color.white.opacity(0.3))
                     .frame(height: 16)
                 
-                // Screenshot count
+                // Screenshot count always visible
                 Text("\(screenshotManager.screenshots.count) \(screenshotManager.screenshots.count == 1 ? "shot" : "shots")")
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.7))
-                
-                // Language picker - compact version
-                Picker("", selection: $selectedLanguage) {
-                    ForEach(languages, id: \.self) { language in
-                        Text(language).tag(language)
-                    }
-                }
-                .pickerStyle(MenuPickerStyle())
-                .frame(width: 80)
-                .labelsHidden()
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+                    .padding(.leading, 4)
+                    .padding(.trailing, 6)
+                    .fixedSize(horizontal: true, vertical: false)
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
         .background(Color.black.opacity(0.2))
         .cornerRadius(6)
     }
     
     // Top control bar
     private var expandedControlBar: some View {
-        HStack {
-            // Instructions in a compact horizontal layout
-            HStack(spacing: 12) {
-                Text("Cmd+H")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color.gray.opacity(0.3))
-                    .cornerRadius(4)
-                
-                Text("Cmd+B")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color.gray.opacity(0.3))
-                    .cornerRadius(4)
-                
-                Text("Cmd+R: Reset")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color.gray.opacity(0.3))
-                    .cornerRadius(4)
-                
-                Text("Cmd+G: Retry")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color.gray.opacity(0.3))
-                    .cornerRadius(4)
-            }
+        HStack(spacing: 10) {
+            // Instructions in a horizontal layout, no scrolling
+            Text("Cmd+H: Screenshot")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.gray.opacity(0.3))
+                .cornerRadius(4)
+            
+            Text("Cmd+B: Toggle")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.gray.opacity(0.3))
+                .cornerRadius(4)
+            
+            Text("Cmd+R: Reset")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.gray.opacity(0.3))
+                .cornerRadius(4)
+            
+            Text("Cmd+G: Retry")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.gray.opacity(0.3))
+                .cornerRadius(4)
             
             Spacer()
-            
-            // Language picker
-            if !screenshotManager.screenshots.isEmpty {
-                HStack(spacing: 8) {
-                    Text("Language:")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.8))
-                    
-                    Picker("", selection: $selectedLanguage) {
-                        ForEach(languages, id: \.self) { language in
-                            Text(language).tag(language)
-                        }
-                    }
-                    .pickerStyle(MenuPickerStyle())
-                    .frame(width: 100)
-                    .labelsHidden()
-                    
-                    Button(action: {
-                        processScreenshots()
-                    }) {
-                        Text("Process")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.6))
-                            .cornerRadius(4)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-            }
         }
     }
     
@@ -260,6 +230,8 @@ struct CompactKeyPill: View {
         Text("\(key): \(action)")
             .font(.system(size: 11, weight: .medium))
             .foregroundColor(.white)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false) // Never truncate horizontally
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
             .background(Color.gray.opacity(0.3))
