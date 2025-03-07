@@ -49,7 +49,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var previousApp: NSRunningApplication?
     
     // Window states
-    private let compactSize = NSSize(width: 320, height: 150)
+    private let compactSize = NSSize(width: 600, height: 80)
     private let expandedSize = NSSize(width: 700, height: 600)
     private var isExpanded = false
     

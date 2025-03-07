@@ -31,38 +31,43 @@ struct MainContentView: View {
         }
     }
     
-    // Compact view with minimal instructions
+    // Compact view with minimal instructions in a single line
     private var compactView: some View {
-        VStack(spacing: 12) {
-            // Hotkey instructions
-            KeyInstructionView(key: "Cmd+H", action: "Screenshot")
-            KeyInstructionView(key: "Cmd+B", action: "Toggle")
-            KeyInstructionView(key: "Cmd+Return", action: "Process")
-            KeyInstructionView(key: "Cmd+Arrow", action: "Move")
+        HStack(spacing: 8) {
+            // Hotkey pills in single line
+            Group {
+                CompactKeyPill(key: "Cmd+H", action: "Screenshot")
+                CompactKeyPill(key: "Cmd+B", action: "Toggle")
+                CompactKeyPill(key: "Cmd+Return", action: "Process")
+                CompactKeyPill(key: "Cmd+Arrow", action: "Move")
+            }
             
-            // Queue info if there are screenshots
+            // Divider if screenshots exist
             if !screenshotManager.screenshots.isEmpty {
-                HStack {
-                    Text("\(screenshotManager.screenshots.count) screenshot\(screenshotManager.screenshots.count == 1 ? "" : "s")")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                    
-                    Spacer()
-                    
-                    // Language picker - compact version
-                    Picker("", selection: $selectedLanguage) {
-                        ForEach(languages, id: \.self) { language in
-                            Text(language).tag(language)
-                        }
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .frame(height: 16)
+                
+                // Screenshot count
+                Text("\(screenshotManager.screenshots.count) \(screenshotManager.screenshots.count == 1 ? "shot" : "shots")")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.7))
+                
+                // Language picker - compact version
+                Picker("", selection: $selectedLanguage) {
+                    ForEach(languages, id: \.self) { language in
+                        Text(language).tag(language)
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    .frame(width: 90)
-                    .labelsHidden()
                 }
-                .padding(.top, 8)
+                .pickerStyle(MenuPickerStyle())
+                .frame(width: 80)
+                .labelsHidden()
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(Color.black.opacity(0.2))
+        .cornerRadius(6)
     }
     
     // Expanded view with results
@@ -217,6 +222,7 @@ struct MainContentView: View {
 }
 
 // Compact, stylized key instruction component
+// Original key instruction view (for expanded mode)
 struct KeyInstructionView: View {
     let key: String
     let action: String
@@ -235,6 +241,22 @@ struct KeyInstructionView: View {
                 .font(.system(size: 12))
                 .foregroundColor(.white.opacity(0.9))
         }
+    }
+}
+
+// Compact key pill for horizontal layout - combines key and action
+struct CompactKeyPill: View {
+    let key: String
+    let action: String
+    
+    var body: some View {
+        Text("\(key): \(action)")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundColor(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.gray.opacity(0.3))
+            .cornerRadius(4)
     }
 }
 
