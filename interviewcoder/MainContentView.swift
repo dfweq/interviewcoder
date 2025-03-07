@@ -12,22 +12,35 @@ struct MainContentView: View {
             // Background
             Color.black.opacity(0.01) // Nearly transparent
             
-            VStack(spacing: 12) {
-                // Title
-                Text("Interview Coder")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-                
+            VStack(spacing: 8) {
                 // Show different views based on state
                 if solutionState.solution != nil || solutionState.debugSolution != nil || solutionState.isProcessing {
                     // Expanded view with results
+                    HStack {
+                        Text("Interview Coder")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                    }
+                    .padding(.bottom, 4)
+                    
                     expandedView
                 } else {
-                    // Compact view with just instructions
-                    compactView
+                    // Compact view with just instructions and title in a horizontal bar
+                    HStack {
+                        Text("Interview Coder")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        // Compact view with just instructions
+                        compactView
+                    }
                 }
             }
-            .padding(16)
+            .padding(10)
         }
     }
     
@@ -39,7 +52,11 @@ struct MainContentView: View {
                 CompactKeyPill(key: "Cmd+H", action: "Screenshot")
                 CompactKeyPill(key: "Cmd+B", action: "Toggle")
                 CompactKeyPill(key: "Cmd+Return", action: "Process")
-                CompactKeyPill(key: "Cmd+Arrow", action: "Move")
+                CompactKeyPill(key: "Cmd+R", action: "Reset")
+                
+                if !screenshotManager.screenshots.isEmpty {
+                    CompactKeyPill(key: "Cmd+G", action: "Retry")
+                }
             }
             
             // Divider if screenshots exist
@@ -70,97 +87,84 @@ struct MainContentView: View {
         .cornerRadius(6)
     }
     
+    // Top control bar
+    private var expandedControlBar: some View {
+        HStack {
+            // Instructions in a compact horizontal layout
+            HStack(spacing: 12) {
+                Text("Cmd+H")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.gray.opacity(0.3))
+                    .cornerRadius(4)
+                
+                Text("Cmd+B")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.gray.opacity(0.3))
+                    .cornerRadius(4)
+                
+                Text("Cmd+R: Reset")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.gray.opacity(0.3))
+                    .cornerRadius(4)
+                
+                Text("Cmd+G: Retry")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.gray.opacity(0.3))
+                    .cornerRadius(4)
+            }
+            
+            Spacer()
+            
+            // Language picker
+            if !screenshotManager.screenshots.isEmpty {
+                HStack(spacing: 8) {
+                    Text("Language:")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    Picker("", selection: $selectedLanguage) {
+                        ForEach(languages, id: \.self) { language in
+                            Text(language).tag(language)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                    .frame(width: 100)
+                    .labelsHidden()
+                    
+                    Button(action: {
+                        processScreenshots()
+                    }) {
+                        Text("Process")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.blue.opacity(0.6))
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
+    }
+    
     // Expanded view with results
     private var expandedView: some View {
         VStack(spacing: 16) {
             // Top control bar
-            HStack {
-                // Instructions in a compact horizontal layout
-                HStack(spacing: 12) {
-                    Text("Cmd+H")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Color.gray.opacity(0.3))
-                        .cornerRadius(4)
-                    
-                    Text("Cmd+B")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Color.gray.opacity(0.3))
-                        .cornerRadius(4)
-                        
-                    Text("Cmd+0: Compact")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Color.gray.opacity(0.3))
-                        .cornerRadius(4)
-                }
-                
-                Spacer()
-                
-                // Language picker
-                if !screenshotManager.screenshots.isEmpty {
-                    HStack(spacing: 8) {
-                        Text("Language:")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.8))
-                        
-                        Picker("", selection: $selectedLanguage) {
-                            ForEach(languages, id: \.self) { language in
-                                Text(language).tag(language)
-                            }
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .frame(width: 100)
-                        .labelsHidden()
-                        
-                        Button(action: {
-                            processScreenshots()
-                        }) {
-                            Text("Process")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.6))
-                                .cornerRadius(4)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
-            }
-            
-            // Screenshot queue (compact version)
-            if !screenshotManager.screenshots.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Screenshots")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(screenshotManager.screenshots.indices, id: \.self) { index in
-                                ScreenshotThumbnailView(
-                                    thumbnail: screenshotManager.screenshots[index].thumbnail,
-                                    onDelete: {
-                                        screenshotManager.removeScreenshot(at: index)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    .frame(height: 80)
-                }
-                .padding(10)
-                .background(Color.black.opacity(0.3))
-                .cornerRadius(8)
-            }
+            expandedControlBar
             
             // Main content area
             if solutionState.isProcessing {
@@ -219,9 +223,12 @@ struct MainContentView: View {
             object: nil
         )
     }
+    
+    private func regenerateSolution() {
+        solutionState.regenerateSolution(language: selectedLanguage)
+    }
 }
 
-// Compact, stylized key instruction component
 // Original key instruction view (for expanded mode)
 struct KeyInstructionView: View {
     let key: String
@@ -435,34 +442,5 @@ struct SolutionDebugView: View {
             }
         }
         .padding(.vertical, 8)
-    }
-}
-
-// Simple thumbnail view for screenshots
-struct ScreenshotThumbnailView: View {
-    let thumbnail: NSImage
-    let onDelete: () -> Void
-    
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Image(nsImage: thumbnail)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 110, height: 62)
-                .cornerRadius(6)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
-            Button(action: onDelete) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.white)
-                    .background(Color.black.opacity(0.6))
-                    .clipShape(Circle())
-                    .padding(4)
-            }
-            .buttonStyle(PlainButtonStyle())
-        }
-        .frame(width: 110, height: 62)
     }
 }

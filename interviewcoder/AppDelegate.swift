@@ -39,6 +39,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var toggleVisibilityHotKey: EventHotKeyRef?
     private var screenshotHotKey: EventHotKeyRef?
     private var processHotKey: EventHotKeyRef?
+    private var resetHotKey: EventHotKeyRef?
+    private var regenerateHotKey: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     
     // Screenshot manager reference
@@ -71,6 +73,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: Notification.Name("SolutionReceived"),
             object: nil
         )
+        
+        // Observe reset requests
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleResetToCompact),
+            name: Notification.Name("ResetToCompact"),
+            object: nil
+        )
     }
     
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -84,6 +94,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         if let hotKeyRef = processHotKey {
+            UnregisterEventHotKey(hotKeyRef)
+        }
+        
+        if let hotKeyRef = resetHotKey {
+            UnregisterEventHotKey(hotKeyRef)
+        }
+        
+        if let hotKeyRef = regenerateHotKey {
             UnregisterEventHotKey(hotKeyRef)
         }
         
@@ -180,6 +198,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         expandWindow()
     }
     
+    @objc func handleResetToCompact() {
+        compactWindow()
+    }
+    
     private func expandWindow() {
         // Only expand if we're currently in compact mode
         if !isExpanded {
@@ -249,6 +271,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             actionID: 2
         )
         
+        // Register Cmd+R for clearing all screenshots (action ID = 4)
+        registerHotKey(
+            keyCode: UInt32(kVK_ANSI_R),
+            modifiers: UInt32(cmdKey),
+            actionID: 4
+        )
+        
+        // Register Cmd+G for regenerating solution (action ID = 5)
+        registerHotKey(
+            keyCode: UInt32(kVK_ANSI_G),
+            modifiers: UInt32(cmdKey),
+            actionID: 5
+        )
+        
         // Store the handlers for these hotkeys
         hotKeyHandlers[1] = { [weak self] in
             self?.toggleWindowPreservingFocus()
@@ -256,6 +292,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         hotKeyHandlers[2] = { [weak self] in
             self?.takeScreenshot()
+        }
+        
+        hotKeyHandlers[4] = { [weak self] in
+            DispatchQueue.main.async {
+                ScreenshotManager.shared.clearQueue()
+                SolutionState.shared.resetState()
+                
+                // Return to compact size
+                self?.compactWindow()
+                NotificationCenter.default.post(
+                    name: Notification.Name("ResetToCompact"),
+                    object: nil
+                )
+            }
+        }
+        
+        hotKeyHandlers[5] = { [weak self] in
+            DispatchQueue.main.async {
+                if !ScreenshotManager.shared.screenshots.isEmpty {
+                    let language = "python" // Default language
+                    SolutionState.shared.regenerateSolution(language: language)
+                }
+            }
         }
     }
     
@@ -271,11 +330,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeyHandlers[3] = { [weak self] in
             DispatchQueue.main.async {
                 let screenshots = ScreenshotManager.shared.screenshots
-                let language = "python" // Default language
-                SolutionState.shared.processScreenshots(screenshots, language: language)
-                
-                // Expand window when processing starts
-                self?.expandWindow()
+                if !screenshots.isEmpty {
+                    let language = "python" // Default language
+                    SolutionState.shared.processScreenshots(screenshots, language: language)
+                    
+                    // Expand window when processing starts
+                    self?.expandWindow()
+                }
             }
         }
     }
@@ -298,12 +359,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         
         if status == noErr {
-            if actionID == 1 {
+            switch actionID {
+            case 1:
                 toggleVisibilityHotKey = hotKeyRef
-            } else if actionID == 2 {
+            case 2:
                 screenshotHotKey = hotKeyRef
-            } else if actionID == 3 {
+            case 3:
                 processHotKey = hotKeyRef
+            case 4:
+                resetHotKey = hotKeyRef
+            case 5:
+                regenerateHotKey = hotKeyRef
+            default:
+                break
             }
         } else {
             print("Failed to register hotkey: \(status)")
