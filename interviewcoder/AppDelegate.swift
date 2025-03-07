@@ -48,12 +48,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var previousApp: NSRunningApplication?
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Create the invisible window
-        setupInvisibleWindow()
+        // Create the window with a large fixed size
+        setupWindow()
         
         // Register global hotkeys
         registerHotKeys()
-        registerSolutionHotKey() // Add processing hotkey
+        registerSolutionHotKey()
         
         // Set up local event monitor for key events within the app
         setupLocalEventMonitor()
@@ -89,9 +89,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     // MARK: - Window Setup
     
-    private func setupInvisibleWindow() {
-        // Define a larger initial size for the window
-        let contentRect = NSRect(x: 100, y: 100, width: 600, height: 500)
+    private func setupWindow() {
+        // Create a larger window by default - this is key to fixing the visibility issue
+        let contentRect = NSRect(x: 100, y: 100, width: 800, height: 700)
         window = NSWindow(
             contentRect: contentRect,
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -107,9 +107,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 400, height: 300) // Set a minimum size
+        window.minSize = NSSize(width: 600, height: 500) // Larger minimum size
         
-        // Create visual effect view
+        // Create visual effect view for the background
         let visualEffectView = NSVisualEffectView()
         visualEffectView.material = .hudWindow
         visualEffectView.state = .active
@@ -131,13 +131,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         window.contentView = visualEffectView
         
-        // Optional: Hide standard window buttons if you want a custom look
+        // Hide standard window buttons for a cleaner look
         window.standardWindowButton(.closeButton)?.isHidden = true
         window.standardWindowButton(.miniaturizeButton)?.isHidden = true
         window.standardWindowButton(.zoomButton)?.isHidden = true
         
-        // Show the window
+        // Position the window in a visible area of the screen
         window.center()
+        window.setFrame(contentRect, display: true)
         window.makeKeyAndOrderFront(nil)
         
         // Enable screen capture protection
@@ -195,7 +196,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeyHandlers[3] = {
             DispatchQueue.main.async {
                 let screenshots = ScreenshotManager.shared.screenshots
-                let language = "python" // Ideally, get from UI state
+                let language = "python" // Default language
                 SolutionState.shared.processScreenshots(screenshots, language: language)
             }
         }
@@ -284,16 +285,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func takeScreenshot() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.screenshotManager.captureScreenshot(
-                hideWindow: {
-                    self.window.orderOut(nil)
-                },
-                showWindow: {
-                    if self.isWindowVisible {
-                        self.window.orderFrontRegardless()
+            
+            // Make sure the window is hidden before taking the screenshot
+            let wasVisible = self.isWindowVisible
+            self.window.orderOut(nil)
+            
+            // Wait a short time to ensure the window is fully hidden
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.screenshotManager.captureScreenshot(
+                    hideWindow: { /* Window is already hidden */ },
+                    showWindow: {
+                        // Only show the window if it was visible before
+                        if wasVisible {
+                            self.window.orderFrontRegardless()
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
     
@@ -301,25 +309,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func moveWindowLeft() {
         var frame = window.frame
-        frame.origin.x -= 10
-        window.setFrame(frame, display: true, animate: true)
+        frame.origin.x -= 20
+        window.setFrame(frame, display: true, animate: false)
     }
     
     private func moveWindowRight() {
         var frame = window.frame
-        frame.origin.x += 10
-        window.setFrame(frame, display: true, animate: true)
+        frame.origin.x += 20
+        window.setFrame(frame, display: true, animate: false)
     }
     
     private func moveWindowUp() {
         var frame = window.frame
-        frame.origin.y += 10
-        window.setFrame(frame, display: true, animate: true)
+        frame.origin.y += 20
+        window.setFrame(frame, display: true, animate: false)
     }
     
     private func moveWindowDown() {
         var frame = window.frame
-        frame.origin.y -= 10
-        window.setFrame(frame, display: true, animate: true)
+        frame.origin.y -= 20
+        window.setFrame(frame, display: true, animate: false)
     }
 }

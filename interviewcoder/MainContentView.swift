@@ -9,144 +9,176 @@ struct MainContentView: View {
     let languages = ["python", "javascript", "java", "c++", "go", "ruby", "swift"]
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("Interview Coder")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
-                
-                // Instructions
-                Text("Press Cmd+H to take a screenshot")
+        VStack(spacing: 16) {
+            // Header
+            Text("Interview Coder")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.top, 8)
+            
+            // Instructions
+            HStack(spacing: 16) {
+                Text("Cmd+H: Screenshot")
                     .font(.system(size: 14))
                     .foregroundColor(.white.opacity(0.8))
                 
-                Text("Press Cmd+B to toggle visibility")
+                Text("|")
+                    .foregroundColor(.white.opacity(0.5))
+                
+                Text("Cmd+B: Toggle")
                     .font(.system(size: 14))
                     .foregroundColor(.white.opacity(0.8))
-                
-                // Screenshot queue
-                if !screenshotManager.screenshots.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("Screenshot Queue")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
+                    
+                Text("|")
+                    .foregroundColor(.white.opacity(0.5))
+                    
+                Text("Cmd+Return: Process")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .padding(.bottom, 4)
+            
+            // Screenshot queue
+            if !screenshotManager.screenshots.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Screenshot Queue")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        // Language selector
+                        HStack(spacing: 8) {
+                            Text("Language:")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.8))
                             
-                            Spacer()
-                            
-                            Button(action: {
-                                showLanguageSelector.toggle()
-                            }) {
-                                HStack {
-                                    Text(selectedLanguage)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.white.opacity(0.8))
-                                    Image(systemName: "chevron.down")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.white.opacity(0.8))
+                            Picker("", selection: $selectedLanguage) {
+                                ForEach(languages, id: \.self) { language in
+                                    Text(language).tag(language)
                                 }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.black.opacity(0.3))
-                                .cornerRadius(4)
                             }
-                            .buttonStyle(PlainButtonStyle())
-                            
-                            if showLanguageSelector {
-                                Menu("") {
-                                    ForEach(languages, id: \.self) { language in
-                                        Button(language) {
-                                            selectedLanguage = language
-                                            showLanguageSelector = false
-                                        }
-                                    }
-                                }
-                                .menuIndicator(.hidden)
-                                .menuStyle(.borderlessButton)
-                            }
-                            
-                            Button(action: {
-                                processScreenshots()
-                            }) {
-                                Text("Process")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.blue.opacity(0.6))
-                                    .cornerRadius(4)
-                            }
-                            .buttonStyle(PlainButtonStyle())
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(width: 100)
                         }
                         
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                ForEach(screenshotManager.screenshots.indices, id: \.self) { index in
-                                    ScreenshotThumbnailView(
-                                        thumbnail: screenshotManager.screenshots[index].thumbnail,
-                                        onDelete: {
-                                            screenshotManager.removeScreenshot(at: index)
-                                        }
-                                    )
-                                }
-                            }
-                            .padding(.vertical, 5)
+                        Button(action: {
+                            processScreenshots()
+                        }) {
+                            Text("Process")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.6))
+                                .cornerRadius(4)
                         }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .padding(10)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(8)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(screenshotManager.screenshots.indices, id: \.self) { index in
+                                ScreenshotThumbnailView(
+                                    thumbnail: screenshotManager.screenshots[index].thumbnail,
+                                    onDelete: {
+                                        screenshotManager.removeScreenshot(at: index)
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
                 }
-                
-                // Processing or result display
-                if solutionState.isProcessing {
-                    VStack {
+                .padding(12)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
+            }
+            
+            // Processing or result display
+            if solutionState.isProcessing {
+                VStack {
+                    Spacer()
+                    
+                    VStack(spacing: 16) {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(1.0)
+                            .padding(8) // Add some padding to prevent constraint errors
+                        
                         Text("Analyzing screenshot and generating solution...")
                             .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.8))
-                            .padding(.top, 8)
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 40)
+                    
+                    Spacer()
+                }
+            } else if let errorMessage = solutionState.errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 14))
+                    .foregroundColor(.red)
                     .padding()
-                } else if let errorMessage = solutionState.errorMessage {
-                    Text(errorMessage)
-                        .font(.system(size: 14))
-                        .foregroundColor(.red)
-                        .padding()
-                        .background(Color.black.opacity(0.3))
-                        .cornerRadius(8)
-                } else if solutionState.isDebugMode, let debugSolution = solutionState.debugSolution {
+                    .background(Color.black.opacity(0.3))
+                    .cornerRadius(8)
+            } else if solutionState.isDebugMode, let debugSolution = solutionState.debugSolution {
+                ScrollView {
                     SolutionDebugView(solution: debugSolution)
-                } else if let solution = solutionState.solution {
+                        .padding(.horizontal, 12)
+                }
+            } else if let solution = solutionState.solution {
+                ScrollView {
                     SolutionView(solution: solution)
+                        .padding(.horizontal, 12)
                 }
-                
-                Spacer()
-                
-                // Status bar
-                HStack {
-                    if screenshotManager.isCapturing {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(0.7)
-                        Text("Capturing...")
-                            .font(.system(size: 12))
+            } else {
+                // Empty state - show a hint
+                VStack {
+                    Spacer()
+                    
+                    VStack(spacing: 16) {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.system(size: 40))
                             .foregroundColor(.white.opacity(0.6))
-                    } else {
-                        Image(systemName: "keyboard")
-                            .foregroundColor(.white.opacity(0.6))
-                        Text("Cmd+H: Screenshot | Cmd+B: Toggle | Cmd+Arrow: Move")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.6))
+                        
+                        Text("Take a screenshot of a coding problem to get started")
+                            .font(.system(size: 16))
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
                     }
+                    .padding()
+                    
+                    Spacer()
                 }
-                .padding(.bottom, 10)
             }
-            .padding(20)
+            
+            Spacer(minLength: 0)
+            
+            // Status bar
+            HStack {
+                if screenshotManager.isCapturing {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.7)
+                        .frame(width: 16, height: 16) // Fixed size to prevent constraint issues
+                    
+                    Text("Capturing...")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.6))
+                } else {
+                    Image(systemName: "keyboard")
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("Cmd+Arrow: Move Window")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+            .padding(.bottom, 8)
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.opacity(0.6))
     }
     
@@ -166,98 +198,100 @@ struct MainContentView: View {
     }
 }
 
-// SolutionView and other subviews remain unchanged
+// SolutionView with improved layout
 struct SolutionView: View {
     let solution: SolutionResult
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 15) {
-                if let problemStatement = solution.problem_statement {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Problem Statement")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                        Text(problemStatement)
-                            .font(.system(size: 14))
-                            .foregroundColor(.white.opacity(0.9))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(10)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(8)
+        VStack(alignment: .leading, spacing: 16) {
+            if let problemStatement = solution.problem_statement {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Problem Statement")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(problemStatement)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                if let thoughts = solution.thoughts, !thoughts.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Approach")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                        ForEach(thoughts, id: \.self) { thought in
-                            HStack(alignment: .top) {
-                                Image(systemName: "circle.fill")
-                                    .font(.system(size: 6))
-                                    .foregroundColor(.blue)
-                                    .padding(.top, 6)
-                                Text(thought)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.white.opacity(0.9))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
-                    .padding(10)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(8)
-                }
-                if let code = solution.code {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Solution")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                        ScrollView(.horizontal, showsIndicators: true) {
-                            Text(code)
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.green.opacity(0.9))
-                                .padding(8)
+                .padding(12)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
+            }
+            
+            if let thoughts = solution.thoughts, !thoughts.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Approach")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    ForEach(thoughts, id: \.self) { thought in
+                        HStack(alignment: .top) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 6))
+                                .foregroundColor(.blue)
+                                .padding(.top, 6)
+                            Text(thought)
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.9))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .background(Color.black.opacity(0.5))
-                        .cornerRadius(4)
                     }
-                    .padding(10)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(8)
                 }
-                if let timeComplexity = solution.time_complexity, let spaceComplexity = solution.space_complexity {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Complexity Analysis")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                        HStack {
-                            Text("Time: ")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.9))
-                            Text(timeComplexity)
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                        HStack {
-                            Text("Space: ")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.9))
-                            Text(spaceComplexity)
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                    }
-                    .padding(10)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(8)
-                }
+                .padding(12)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
             }
-            .padding(10)
+            
+            if let code = solution.code {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Solution")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    ScrollView([.horizontal, .vertical]) {
+                        Text(code)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.green.opacity(0.9))
+                            .padding(8)
+                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                    }
+                    .background(Color.black.opacity(0.5))
+                    .cornerRadius(4)
+                    .frame(height: min(CGFloat(code.components(separatedBy: "\n").count) * 20 + 16, 300))
+                }
+                .padding(12)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
+            }
+            
+            if let timeComplexity = solution.time_complexity, let spaceComplexity = solution.space_complexity {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Complexity Analysis")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    HStack {
+                        Text("Time: ")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                        Text(timeComplexity)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                    HStack {
+                        Text("Space: ")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                        Text(spaceComplexity)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                }
+                .padding(12)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 12)
     }
 }
 
@@ -265,79 +299,80 @@ struct SolutionDebugView: View {
     let solution: SolutionResult
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 15) {
-                if let thoughts = solution.thoughts, !thoughts.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("What I Changed")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                        ForEach(thoughts, id: \.self) { thought in
-                            HStack(alignment: .top) {
-                                Image(systemName: "circle.fill")
-                                    .font(.system(size: 6))
-                                    .foregroundColor(.blue)
-                                    .padding(.top, 6)
-                                Text(thought)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.white.opacity(0.9))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
-                    .padding(10)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(8)
-                }
-                if let code = solution.new_code {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Improved Solution")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                        ScrollView(.horizontal, showsIndicators: true) {
-                            Text(code)
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.green.opacity(0.9))
-                                .padding(8)
+        VStack(alignment: .leading, spacing: 16) {
+            if let thoughts = solution.thoughts, !thoughts.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("What I Changed")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    ForEach(thoughts, id: \.self) { thought in
+                        HStack(alignment: .top) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 6))
+                                .foregroundColor(.blue)
+                                .padding(.top, 6)
+                            Text(thought)
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.9))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .background(Color.black.opacity(0.5))
-                        .cornerRadius(4)
                     }
-                    .padding(10)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(8)
                 }
-                if let timeComplexity = solution.time_complexity, let spaceComplexity = solution.space_complexity {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Complexity Analysis")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                        HStack {
-                            Text("Time: ")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.9))
-                            Text(timeComplexity)
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                        HStack {
-                            Text("Space: ")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.9))
-                            Text(spaceComplexity)
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                    }
-                    .padding(10)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(8)
-                }
+                .padding(12)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
             }
-            .padding(10)
+            
+            if let code = solution.new_code {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Improved Solution")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    ScrollView([.horizontal, .vertical]) {
+                        Text(code)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.green.opacity(0.9))
+                            .padding(8)
+                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                    }
+                    .background(Color.black.opacity(0.5))
+                    .cornerRadius(4)
+                    .frame(height: min(CGFloat(code.components(separatedBy: "\n").count) * 20 + 16, 300))
+                }
+                .padding(12)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
+            }
+            
+            if let timeComplexity = solution.time_complexity, let spaceComplexity = solution.space_complexity {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Complexity Analysis")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    HStack {
+                        Text("Time: ")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                        Text(timeComplexity)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                    HStack {
+                        Text("Space: ")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                        Text(spaceComplexity)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                }
+                .padding(12)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 12)
     }
 }
 
