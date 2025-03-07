@@ -43,12 +43,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     // Screenshot manager reference
     private let screenshotManager = ScreenshotManager.shared
+    private let solutionState = SolutionState.shared
     
     // Store the previous app for focus preservation
     private var previousApp: NSRunningApplication?
     
+    // Window states
+    private let compactSize = NSSize(width: 320, height: 150)
+    private let expandedSize = NSSize(width: 700, height: 600)
+    private var isExpanded = false
+    
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Create the window with a large fixed size
+        // Create the window with a minimal size initially
         setupWindow()
         
         // Register global hotkeys
@@ -57,6 +63,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Set up local event monitor for key events within the app
         setupLocalEventMonitor()
+        
+        // Observe solution state changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSolutionReceived),
+            name: Notification.Name("SolutionReceived"),
+            object: nil
+        )
     }
     
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -83,6 +97,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSEvent.removeMonitor(localEventMonitor)
         }
         
+        // Remove notifications
+        NotificationCenter.default.removeObserver(self)
+        
         // Clear handlers
         hotKeyHandlers.removeAll()
     }
@@ -90,8 +107,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Window Setup
     
     private func setupWindow() {
-        // Create a larger window by default - this is key to fixing the visibility issue
-        let contentRect = NSRect(x: 100, y: 100, width: 800, height: 700)
+        // Start with a small window
+        let contentRect = NSRect(origin: .zero, size: compactSize)
         window = NSWindow(
             contentRect: contentRect,
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -100,14 +117,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         
         // Configure window properties
+        window.titlebarAppearsTransparent = true
         window.isOpaque = false
-        window.backgroundColor = NSColor.clear
+        window.backgroundColor = NSColor.black.withAlphaComponent(0.5) // More transparent
         window.hasShadow = true
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 600, height: 500) // Larger minimum size
+        window.titleVisibility = .hidden
+        window.standardWindowButton(.closeButton)?.isHidden = true
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        window.standardWindowButton(.zoomButton)?.isHidden = true
         
         // Create visual effect view for the background
         let visualEffectView = NSVisualEffectView()
@@ -131,18 +152,72 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         window.contentView = visualEffectView
         
-        // Hide standard window buttons for a cleaner look
-        window.standardWindowButton(.closeButton)?.isHidden = true
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
+        // Position near the top-right of the screen
+        positionWindowInCorner()
         
-        // Position the window in a visible area of the screen
-        window.center()
-        window.setFrame(contentRect, display: true)
         window.makeKeyAndOrderFront(nil)
         
         // Enable screen capture protection
         window.sharingType = .none
+    }
+    
+    // Position window in the top-right corner of the screen
+    private func positionWindowInCorner() {
+        if let screenFrame = NSScreen.main?.visibleFrame {
+            var windowFrame = window.frame
+            
+            // Position in top-right with some padding
+            windowFrame.origin.x = screenFrame.maxX - windowFrame.width - 20
+            windowFrame.origin.y = screenFrame.maxY - windowFrame.height - 40
+            
+            window.setFrame(windowFrame, display: true)
+        }
+    }
+    
+    // MARK: - Window Resizing
+    
+    @objc func handleSolutionReceived() {
+        expandWindow()
+    }
+    
+    private func expandWindow() {
+        // Only expand if we're currently in compact mode
+        if !isExpanded {
+            isExpanded = true
+            resizeWindow(to: expandedSize)
+        }
+    }
+    
+    private func compactWindow() {
+        // Only compact if we're currently in expanded mode
+        if isExpanded {
+            isExpanded = false
+            resizeWindow(to: compactSize)
+        }
+    }
+    
+    private func resizeWindow(to size: NSSize) {
+        // Remember current position
+        let currentOrigin = window.frame.origin
+        
+        // Calculate new frame
+        var newFrame = NSRect(origin: currentOrigin, size: size)
+        
+        // Ensure the window stays on screen
+        if let screenFrame = NSScreen.main?.visibleFrame {
+            if newFrame.maxX > screenFrame.maxX {
+                newFrame.origin.x = screenFrame.maxX - newFrame.width - 20
+            }
+            if newFrame.maxY > screenFrame.maxY {
+                newFrame.origin.y = screenFrame.maxY - newFrame.height - 40
+            }
+        }
+        
+        // Animate the resize
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.3
+            window.animator().setFrame(newFrame, display: true)
+        }
     }
     
     // MARK: - Hotkey Registration
@@ -185,7 +260,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func registerSolutionHotKey() {
-        // Register Cmd+Enter for processing screenshots (action ID = 3)
+        // Register Cmd+Return for processing screenshots (action ID = 3)
         registerHotKey(
             keyCode: UInt32(kVK_Return),
             modifiers: UInt32(cmdKey),
@@ -193,11 +268,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         
         // Store the handler
-        hotKeyHandlers[3] = {
+        hotKeyHandlers[3] = { [weak self] in
             DispatchQueue.main.async {
                 let screenshots = ScreenshotManager.shared.screenshots
                 let language = "python" // Default language
                 SolutionState.shared.processScreenshots(screenshots, language: language)
+                
+                // Expand window when processing starts
+                self?.expandWindow()
             }
         }
     }
@@ -254,6 +332,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     if event.modifierFlags.contains(.command) {
                         NSApp.terminate(nil)
                     }
+                case UInt16(kVK_ANSI_0): // Cmd+0 to reset to compact size
+                    self?.compactWindow()
+                    return nil
                 default:
                     break
                 }
