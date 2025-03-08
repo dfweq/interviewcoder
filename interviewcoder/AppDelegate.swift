@@ -55,9 +55,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let expandedSize = NSSize(width: 700, height: 600)
     private var isExpanded = false
     
+    // Constants for window positioning
+    private let screenEdgeMargin: CGFloat = 20
+    private let minimumVisiblePortion: CGFloat = 100
+    
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Create the window with a minimal size initially
         setupWindow()
+        
+        // Position window in the top right corner initially
+        positionWindowInTopRight()
         
         // Register global hotkeys
         registerHotKeys()
@@ -169,24 +176,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ])
         
         window.contentView = visualEffectView
-        
-        // Position near the top-right of the screen
-        positionWindowInCorner()
-        
         window.makeKeyAndOrderFront(nil)
         
         // Enable screen capture protection
         window.sharingType = .none
     }
     
-    // Position window in the top-right corner of the screen
-    private func positionWindowInCorner() {
+    // Position window in the top-right corner of the screen initially
+    private func positionWindowInTopRight() {
         if let screenFrame = NSScreen.main?.visibleFrame {
             var windowFrame = window.frame
             
             // Position in top-right with some padding
-            windowFrame.origin.x = screenFrame.maxX - windowFrame.width - 20
-            windowFrame.origin.y = screenFrame.maxY - windowFrame.height - 40
+            windowFrame.origin.x = screenFrame.maxX - windowFrame.width - screenEdgeMargin
+            windowFrame.origin.y = screenFrame.maxY - windowFrame.height - screenEdgeMargin
             
             window.setFrame(windowFrame, display: true)
         }
@@ -206,7 +209,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Only expand if we're currently in compact mode
         if !isExpanded {
             isExpanded = true
-            resizeWindow(to: expandedSize)
+            resizeWindowInPlace(to: expandedSize)
         }
     }
     
@@ -214,32 +217,72 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Only compact if we're currently in expanded mode
         if isExpanded {
             isExpanded = false
-            resizeWindow(to: compactSize)
+            resizeWindowInPlace(to: compactSize)
         }
     }
     
-    private func resizeWindow(to size: NSSize) {
-        // Remember current position
-        let currentOrigin = window.frame.origin
+    // Resize the window while keeping it in the same position
+    private func resizeWindowInPlace(to newSize: NSSize) {
+        // Get the current window frame
+        let currentFrame = window.frame
         
-        // Calculate new frame
-        var newFrame = NSRect(origin: currentOrigin, size: size)
+        // Calculate center point of current window
+        let centerX = currentFrame.origin.x + (currentFrame.width / 2)
+        let centerY = currentFrame.origin.y + (currentFrame.height / 2)
         
-        // Ensure the window stays on screen
-        if let screenFrame = NSScreen.main?.visibleFrame {
-            if newFrame.maxX > screenFrame.maxX {
-                newFrame.origin.x = screenFrame.maxX - newFrame.width - 20
-            }
-            if newFrame.maxY > screenFrame.maxY {
-                newFrame.origin.y = screenFrame.maxY - newFrame.height - 40
-            }
-        }
+        // Calculate new origin that maintains the center point
+        let newOriginX = centerX - (newSize.width / 2)
+        let newOriginY = centerY - (newSize.height / 2)
+        
+        // Create new frame with the same center point
+        var newFrame = NSRect(
+            x: newOriginX,
+            y: newOriginY,
+            width: newSize.width,
+            height: newSize.height
+        )
+        
+        // Apply safety bounds checks to ensure window is not completely off-screen
+        newFrame = ensureWindowIsAccessible(frame: newFrame)
         
         // Animate the resize
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.3
             window.animator().setFrame(newFrame, display: true)
         }
+    }
+    
+    // Ensure window is accessible and not completely off-screen
+    private func ensureWindowIsAccessible(frame: NSRect) -> NSRect {
+        guard let screenFrame = NSScreen.main?.visibleFrame else {
+            return frame
+        }
+        
+        var adjustedFrame = frame
+        
+        // Make sure at least minimumVisiblePortion is visible on each edge
+        
+        // Right edge
+        if adjustedFrame.origin.x + adjustedFrame.width < screenFrame.origin.x + minimumVisiblePortion {
+            adjustedFrame.origin.x = screenFrame.origin.x + minimumVisiblePortion - adjustedFrame.width
+        }
+        
+        // Left edge
+        if adjustedFrame.origin.x > screenFrame.origin.x + screenFrame.width - minimumVisiblePortion {
+            adjustedFrame.origin.x = screenFrame.origin.x + screenFrame.width - minimumVisiblePortion
+        }
+        
+        // Bottom edge
+        if adjustedFrame.origin.y + adjustedFrame.height < screenFrame.origin.y + minimumVisiblePortion {
+            adjustedFrame.origin.y = screenFrame.origin.y + minimumVisiblePortion - adjustedFrame.height
+        }
+        
+        // Top edge
+        if adjustedFrame.origin.y > screenFrame.origin.y + screenFrame.height - minimumVisiblePortion {
+            adjustedFrame.origin.y = screenFrame.origin.y + screenFrame.height - minimumVisiblePortion
+        }
+        
+        return adjustedFrame
     }
     
     // MARK: - Hotkey Registration
@@ -299,7 +342,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 ScreenshotManager.shared.clearQueue()
                 SolutionState.shared.resetState()
                 
-                // Return to compact size
+                // Return to compact size (in place)
                 self?.compactWindow()
                 NotificationCenter.default.post(
                     name: Notification.Name("ResetToCompact"),
@@ -334,7 +377,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     let language = "python" // Default language
                     SolutionState.shared.processScreenshots(screenshots, language: language)
                     
-                    // Expand window when processing starts
+                    // Expand window in place when processing starts
                     self?.expandWindow()
                 }
             }
@@ -459,24 +502,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func moveWindowLeft() {
         var frame = window.frame
         frame.origin.x -= 20
+        
+        // Apply bounds check
+        frame = ensureWindowIsAccessible(frame: frame)
         window.setFrame(frame, display: true, animate: false)
     }
     
     private func moveWindowRight() {
         var frame = window.frame
         frame.origin.x += 20
+        
+        // Apply bounds check
+        frame = ensureWindowIsAccessible(frame: frame)
         window.setFrame(frame, display: true, animate: false)
     }
     
     private func moveWindowUp() {
         var frame = window.frame
         frame.origin.y += 20
+        
+        // Apply bounds check
+        frame = ensureWindowIsAccessible(frame: frame)
         window.setFrame(frame, display: true, animate: false)
     }
     
     private func moveWindowDown() {
         var frame = window.frame
         frame.origin.y -= 20
+        
+        // Apply bounds check
+        frame = ensureWindowIsAccessible(frame: frame)
         window.setFrame(frame, display: true, animate: false)
     }
 }
