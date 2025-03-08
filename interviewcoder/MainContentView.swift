@@ -54,9 +54,14 @@ struct MainContentView: View {
             CompactKeyPill(key: "Cmd+H", action: "Screenshot")
             CompactKeyPill(key: "Cmd+B", action: "Toggle")
             CompactKeyPill(key: "Cmd+Return", action: "Process")
-            CompactKeyPill(key: "Cmd+R", action: "Reset")
             
+            // Only show Reset hotkey if there are screenshots
             if !screenshotManager.screenshots.isEmpty {
+                CompactKeyPill(key: "Cmd+R", action: "Reset")
+            }
+            
+            // Only show Retry hotkey if there's a solution to retry
+            if solutionState.solution != nil || solutionState.debugSolution != nil {
                 CompactKeyPill(key: "Cmd+G", action: "Retry")
             }
             
@@ -106,25 +111,31 @@ struct MainContentView: View {
                 .background(Color.gray.opacity(0.3))
                 .cornerRadius(4)
             
-            Text("Cmd+R: Reset")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Color.gray.opacity(0.3))
-                .cornerRadius(4)
+            // Only show Reset instruction if there are screenshots
+            if !screenshotManager.screenshots.isEmpty {
+                Text("Cmd+R: Reset")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.gray.opacity(0.3))
+                    .cornerRadius(4)
+            }
             
-            Text("Cmd+G: Retry")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Color.gray.opacity(0.3))
-                .cornerRadius(4)
+            // Only show Retry instruction if there's a solution to retry
+            if solutionState.solution != nil || solutionState.debugSolution != nil {
+                Text("Cmd+G: Retry")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.gray.opacity(0.3))
+                    .cornerRadius(4)
+            }
             
             Spacer()
         }

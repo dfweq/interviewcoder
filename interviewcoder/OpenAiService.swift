@@ -3,7 +3,7 @@ import SwiftUI
 
 class OpenAIService {
     // For testing purposes - in production, should use secure storage
-    private let apiKey =   // Replace with your actual API key
+    private let apiKey =  // Replace with your actual API key
     private let apiUrl = "https://api.openai.com/v1/chat/completions"
     
     static let shared = OpenAIService()
