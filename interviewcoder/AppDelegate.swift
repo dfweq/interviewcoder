@@ -150,12 +150,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupWindow() {
         // Start with a small window
         let contentRect = NSRect(origin: .zero, size: compactSize)
-        window = NSWindow(
+        
+        // Create a panel instead of a window with nonactivatingPanel style
+        let panel = NSPanel(
             contentRect: contentRect,
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
+        
+        // Set panel-specific properties
+        panel.isFloatingPanel = true
+        panel.worksWhenModal = true
+        panel.becomesKeyOnlyIfNeeded = true
+        
+        // Assign the panel to our window property
+        window = panel
         
         // Configure window properties
         window.titlebarAppearsTransparent = true
@@ -484,15 +494,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         isWindowVisible.toggle()
         if isWindowVisible {
             window.orderFrontRegardless()
-            window.makeKey()
+            // Don't make the window key as it would activate the app
         } else {
             window.orderOut(nil)
-            // Restore focus to the previous app
-            if let app = previousApp {
-                // In macOS 14+, the ignoringOtherApps flag has no effect
-                // but we need to call activate regardless of OS version
-                app.activate()
-            }
+        }
+        
+        // Always restore focus to the previous app
+        if let app = previousApp {
+            app.activate(options: [])
         }
     }
     
@@ -512,6 +521,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         // Only show the window if it was visible before
                         if wasVisible {
                             self.window.orderFrontRegardless()
+                            
+                            // Make sure we restore focus to the previous app
+                            if let app = self.previousApp {
+                                app.activate(options: [])
+                            }
                         }
                     }
                 )
