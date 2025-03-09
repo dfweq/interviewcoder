@@ -20,6 +20,12 @@ class SolutionState: ObservableObject {
             return
         }
         
+        // Check if API key is set
+        if !APIKeyManager.hasAPIKey() {
+            self.errorMessage = "OpenAI API key not set. Please set your API key and try again."
+            return
+        }
+        
         self.isProcessing = true
         self.errorMessage = nil
         
@@ -40,7 +46,11 @@ class SolutionState: ObservableObject {
                     self.errorMessage = nil
                     
                 case .failure(let error):
-                    self.errorMessage = "Error: \(error.localizedDescription)"
+                    if let openAIError = error as? OpenAIError, openAIError == OpenAIError.invalidAPIKey {
+                        self.errorMessage = "Invalid API key. Please update your OpenAI API key."
+                    } else {
+                        self.errorMessage = "Error: \(error.localizedDescription)"
+                    }
                     self.solution = nil
                 }
                 
@@ -56,6 +66,12 @@ class SolutionState: ObservableObject {
     func processDebugScreenshots(originalScreenshots: [ScreenshotManager.Screenshot], extraScreenshots: [ScreenshotManager.Screenshot], language: String = "python") {
         guard !originalScreenshots.isEmpty, !extraScreenshots.isEmpty else {
             self.errorMessage = "Missing screenshots for debug"
+            return
+        }
+        
+        // Check if API key is set
+        if !APIKeyManager.hasAPIKey() {
+            self.errorMessage = "OpenAI API key not set. Please set your API key and try again."
             return
         }
         
@@ -90,7 +106,11 @@ class SolutionState: ObservableObject {
                     self.errorMessage = nil
                     
                 case .failure(let error):
-                    self.errorMessage = "Debug Error: \(error.localizedDescription)"
+                    if let openAIError = error as? OpenAIError, openAIError == OpenAIError.invalidAPIKey {
+                        self.errorMessage = "Invalid API key. Please update your OpenAI API key."
+                    } else {
+                        self.errorMessage = "Debug Error: \(error.localizedDescription)"
+                    }
                     self.debugSolution = nil
                 }
                 
@@ -107,6 +127,12 @@ class SolutionState: ObservableObject {
         // Use existing screenshots to regenerate solution
         guard let screenshots = ScreenshotManager.shared.screenshots.first else {
             self.errorMessage = "No screenshots to process"
+            return
+        }
+        
+        // Check if API key is set
+        if !APIKeyManager.hasAPIKey() {
+            self.errorMessage = "OpenAI API key not set. Please set your API key and try again."
             return
         }
         
@@ -135,7 +161,11 @@ class SolutionState: ObservableObject {
                     self.errorMessage = nil
                     
                 case .failure(let error):
-                    self.errorMessage = "Error: \(error.localizedDescription)"
+                    if let openAIError = error as? OpenAIError, openAIError == OpenAIError.invalidAPIKey {
+                        self.errorMessage = "Invalid API key. Please update your OpenAI API key."
+                    } else {
+                        self.errorMessage = "Error: \(error.localizedDescription)"
+                    }
                     self.solution = nil
                 }
                 

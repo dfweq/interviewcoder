@@ -4,6 +4,7 @@ struct MainContentView: View {
     @ObservedObject private var screenshotManager = ScreenshotManager.shared
     @ObservedObject private var solutionState = SolutionState.shared
     @State private var selectedLanguage = "python"
+    @State private var showAPIPrompt = !APIKeyManager.hasAPIKey()
     
     let languages = ["python", "javascript", "java", "c++", "go", "ruby", "swift"]
     
@@ -22,6 +23,20 @@ struct MainContentView: View {
                             .foregroundColor(.white)
                         
                         Spacer()
+                        
+                        // Add API key button in the header
+                        Button(action: {
+                            showAPIPrompt = true
+                        }) {
+                            Text("Update API Key")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.3))
+                        .cornerRadius(4)
                     }
                     .padding(.bottom, 4)
                     
@@ -38,6 +53,20 @@ struct MainContentView: View {
                         
                         Spacer()
                         
+                        // Add API key button
+                        Button(action: {
+                            showAPIPrompt = true
+                        }) {
+                            Text("API Key")
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color.gray.opacity(0.3))
+                        .cornerRadius(4)
+                        
                         // Compact view with just instructions
                         compactView
                     }
@@ -45,6 +74,9 @@ struct MainContentView: View {
             }
             .padding(10)
         }
+        .sheet(isPresented: $showAPIPrompt, content: {
+            APIKeyPromptView(isPresented: $showAPIPrompt)
+        })
     }
     
     // Compact view with minimal instructions in a single line

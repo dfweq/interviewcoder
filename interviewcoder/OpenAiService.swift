@@ -2,8 +2,10 @@ import Foundation
 import SwiftUI
 
 class OpenAIService {
-    // For testing purposes - in production, should use secure storage
-    private let apiKey =  // Replace with your actual API key
+    // Use stored API key from UserDefaults
+    private var apiKey: String {
+        return APIKeyManager.getAPIKey() ?? ""
+    }
     private let apiUrl = "https://api.openai.com/v1/chat/completions"
     
     static let shared = OpenAIService()
@@ -11,6 +13,11 @@ class OpenAIService {
     private init() {}
     
     func analyzeScreenshot(image: NSImage, language: String = "python", completion: @escaping (Result<SolutionResult, Error>) -> Void) {
+        guard !apiKey.isEmpty else {
+            completion(.failure(OpenAIError.invalidAPIKey))
+            return
+        }
+        
         guard let base64Image = convertImageToBase64(image) else {
             completion(.failure(OpenAIError.imageConversionFailed))
             return
@@ -126,6 +133,11 @@ class OpenAIService {
     
     // Add a debug method for processing an extra screenshot
     func debugWithExtraScreenshot(originalScreenshots: [NSImage], newScreenshot: NSImage, language: String = "python", completion: @escaping (Result<SolutionResult, Error>) -> Void) {
+        guard !apiKey.isEmpty else {
+            completion(.failure(OpenAIError.invalidAPIKey))
+            return
+        }
+        
         // Combine all images as base64
         var base64Images = [String]()
         
@@ -265,13 +277,31 @@ class OpenAIService {
     }
 }
 
-enum OpenAIError: Error {
+enum OpenAIError: Error, Equatable {
     case invalidURL
     case imageConversionFailed
     case noData
     case parsingFailed
     case apiError(String)
     case httpError(Int)
+    case invalidAPIKey
+    
+    static func == (lhs: OpenAIError, rhs: OpenAIError) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidURL, .invalidURL),
+             (.imageConversionFailed, .imageConversionFailed),
+             (.noData, .noData),
+             (.parsingFailed, .parsingFailed),
+             (.invalidAPIKey, .invalidAPIKey):
+            return true
+        case let (.apiError(lhsMessage), .apiError(rhsMessage)):
+            return lhsMessage == rhsMessage
+        case let (.httpError(lhsCode), .httpError(rhsCode)):
+            return lhsCode == rhsCode
+        default:
+            return false
+        }
+    }
 }
 
 // Models for OpenAI API responses
