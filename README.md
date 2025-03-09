@@ -76,7 +76,7 @@ Interview Coder sends screenshots to OpenAI's servers for analysis. Please ensur
 
 ## License
 
-MIT
+GNU
 
 ## Acknowledgements
 
