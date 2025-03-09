@@ -43,9 +43,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var regenerateHotKey: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     
-    // Screenshot manager reference
-    private let screenshotManager = ScreenshotManager.shared
-    private let solutionState = SolutionState.shared
+    // Screenshot manager reference - initialized in applicationDidFinishLaunching
+    private var screenshotManager: ScreenshotManager!
+    private var solutionState: SolutionState!
     
     // Store the previous app for focus preservation
     private var previousApp: NSRunningApplication?
@@ -59,7 +59,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let screenEdgeMargin: CGFloat = 20
     private let minimumVisiblePortion: CGFloat = 100
     
+    // New method for programmatic app initialization
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.activate(ignoringOtherApps: true)
+        app.run()
+    }
+    
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        // Initialize main actor confined objects here
+        self.screenshotManager = ScreenshotManager.shared
+        self.solutionState = SolutionState.shared
+        
+        // Ensure app is active
+        NSApp.activate(ignoringOtherApps: true)
+        
         // Create the window with a minimal size initially
         setupWindow()
         
@@ -343,8 +359,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         hotKeyHandlers[4] = { [weak self] in
             DispatchQueue.main.async {
-                ScreenshotManager.shared.clearQueue()
-                SolutionState.shared.resetState()
+                self?.screenshotManager.clearQueue()
+                self?.solutionState.resetState()
                 
                 // Return to compact size (in place)
                 self?.compactWindow()
@@ -357,10 +373,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         hotKeyHandlers[5] = { [weak self] in
             DispatchQueue.main.async {
-                if !ScreenshotManager.shared.screenshots.isEmpty {
-                    let language = "python" // Default language
-                    SolutionState.shared.regenerateSolution(language: language)
-                }
+                guard let self = self, !self.screenshotManager.screenshots.isEmpty else { return }
+                let language = "python" // Default language
+                self.solutionState.regenerateSolution(language: language)
             }
         }
     }
@@ -376,13 +391,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Store the handler
         hotKeyHandlers[3] = { [weak self] in
             DispatchQueue.main.async {
-                let screenshots = ScreenshotManager.shared.screenshots
+                guard let self = self else { return }
+                let screenshots = self.screenshotManager.screenshots
                 if !screenshots.isEmpty {
                     let language = "python" // Default language
-                    SolutionState.shared.processScreenshots(screenshots, language: language)
+                    self.solutionState.processScreenshots(screenshots, language: language)
                     
                     // Expand window in place when processing starts
-                    self?.expandWindow()
+                    self.expandWindow()
                 }
             }
         }
@@ -473,7 +489,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.orderOut(nil)
             // Restore focus to the previous app
             if let app = previousApp {
-                app.activate(options: .activateIgnoringOtherApps)
+                // In macOS 14+, the ignoringOtherApps flag has no effect
+                // but we need to call activate regardless of OS version
+                app.activate()
             }
         }
     }

@@ -77,54 +77,45 @@ class OpenAIService {
             }
             
             // Parse response
-            do {
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-                    if let responseJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let errorMessage = responseJson["error"] as? [String: Any],
-                       let message = errorMessage["message"] as? String {
-                        completion(.failure(OpenAIError.apiError(message)))
-                    } else {
-                        completion(.failure(OpenAIError.httpError(httpResponse.statusCode)))
-                    }
-                    return
-                }
-                
-                // First try to parse as JSON directly
-                let jsonDecoder = JSONDecoder()
-                if let apiResponse = try? jsonDecoder.decode(OpenAIResponse.self, from: data),
-                   let choices = apiResponse.choices.first,
-                   let content = choices.message.content {
-                    
-                    // Parse the content which should be a JSON string
-                    if let contentData = content.data(using: .utf8),
-                       let solution = try? jsonDecoder.decode(SolutionResult.self, from: contentData) {
-                        completion(.success(solution))
-                    } else {
-                        // If direct decoding fails, try to extract JSON from the message content
-                        let solutionDataString = content
-                        guard let solutionData = solutionDataString.data(using: .utf8) else {
-                            completion(.failure(OpenAIError.parsingFailed))
-                            return
-                        }
-                        
-                        do {
-                            let solution = try jsonDecoder.decode(SolutionResult.self, from: solutionData)
-                            completion(.success(solution))
-                        } catch {
-                            print("JSON parsing error: \(error)")
-                            completion(.failure(OpenAIError.parsingFailed))
-                        }
-                    }
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                if let responseJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorMessage = responseJson["error"] as? [String: Any],
+                   let message = errorMessage["message"] as? String {
+                    completion(.failure(OpenAIError.apiError(message)))
                 } else {
-                    // Try to parse as raw JSON directly in case API didn't wrap properly
-                    if let solution = try? jsonDecoder.decode(SolutionResult.self, from: data) {
+                    completion(.failure(OpenAIError.httpError(httpResponse.statusCode)))
+                }
+                return
+            }
+            
+            // First try to parse as JSON directly
+            let jsonDecoder = JSONDecoder()
+            // First try to parse as OpenAI response
+            if let apiResponse = try? jsonDecoder.decode(OpenAIResponse.self, from: data),
+               let choices = apiResponse.choices.first,
+               let content = choices.message.content {
+                
+                // Parse the content which should be a JSON string
+                if let contentData = content.data(using: .utf8) {
+                    do {
+                        let solution = try jsonDecoder.decode(SolutionResult.self, from: contentData)
                         completion(.success(solution))
-                    } else {
+                    } catch {
+                        print("JSON parsing error from content: \(error)")
                         completion(.failure(OpenAIError.parsingFailed))
                     }
+                } else {
+                    completion(.failure(OpenAIError.parsingFailed))
                 }
-            } catch {
-                completion(.failure(error))
+            } else {
+                // Try to parse as raw JSON directly in case API didn't wrap properly
+                do {
+                    let solution = try jsonDecoder.decode(SolutionResult.self, from: data)
+                    completion(.success(solution))
+                } catch {
+                    print("JSON parsing error from raw data: \(error)")
+                    completion(.failure(OpenAIError.parsingFailed))
+                }
             }
         }
         
@@ -229,37 +220,41 @@ class OpenAIService {
                 return
             }
             
+            // Parse response
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                if let responseJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorMessage = responseJson["error"] as? [String: Any],
+                   let message = errorMessage["message"] as? String {
+                    completion(.failure(OpenAIError.apiError(message)))
+                } else {
+                    completion(.failure(OpenAIError.httpError(httpResponse.statusCode)))
+                }
+                return
+            }
+            
             // Same parsing logic as the analyzeScreenshot method
-            do {
-                let jsonDecoder = JSONDecoder()
-                if let apiResponse = try? jsonDecoder.decode(OpenAIResponse.self, from: data),
-                   let choices = apiResponse.choices.first,
-                   let content = choices.message.content {
-                    
-                    if let contentData = content.data(using: .utf8),
-                       let solution = try? jsonDecoder.decode(SolutionResult.self, from: contentData) {
+            let jsonDecoder = JSONDecoder()
+            
+            // First try to parse as OpenAI response
+            if let apiResponse = try? jsonDecoder.decode(OpenAIResponse.self, from: data),
+               let choices = apiResponse.choices.first,
+               let content = choices.message.content {
+                
+                if let contentData = content.data(using: .utf8) {
+                    do {
+                        let solution = try jsonDecoder.decode(SolutionResult.self, from: contentData)
                         completion(.success(solution))
-                    } else {
-                        let solutionDataString = content
-                        guard let solutionData = solutionDataString.data(using: .utf8) else {
-                            completion(.failure(OpenAIError.parsingFailed))
-                            return
-                        }
-                        
-                        do {
-                            let solution = try jsonDecoder.decode(SolutionResult.self, from: solutionData)
-                            completion(.success(solution))
-                        } catch {
-                            completion(.failure(OpenAIError.parsingFailed))
-                        }
+                    } catch {
+                        print("Debug JSON parsing error: \(error)")
+                        completion(.failure(OpenAIError.parsingFailed))
                     }
-                } else if let solution = try? jsonDecoder.decode(SolutionResult.self, from: data) {
-                    completion(.success(solution))
                 } else {
                     completion(.failure(OpenAIError.parsingFailed))
                 }
-            } catch {
-                completion(.failure(error))
+            } else if let solution = try? jsonDecoder.decode(SolutionResult.self, from: data) {
+                completion(.success(solution))
+            } else {
+                completion(.failure(OpenAIError.parsingFailed))
             }
         }
         
