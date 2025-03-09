@@ -250,100 +250,106 @@ struct CompactKeyPill: View {
     }
 }
 
-// SolutionView with improved layout
+// SolutionView with improved font size and spacing
 struct SolutionView: View {
     let solution: SolutionResult
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             if let problemStatement = solution.problem_statement {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Problem Statement")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                     Text(problemStatement)
-                        .font(.system(size: 13))
+                        .font(.system(size: 14))
                         .foregroundColor(.white.opacity(0.9))
                         .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(4)
                 }
-                .padding(12)
+                .padding(14)
                 .background(Color.black.opacity(0.3))
                 .cornerRadius(8)
             }
             
             if let thoughts = solution.thoughts, !thoughts.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Approach")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                     ForEach(thoughts, id: \.self) { thought in
-                        HStack(alignment: .top) {
+                        HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "circle.fill")
                                 .font(.system(size: 6))
                                 .foregroundColor(.blue)
-                                .padding(.top, 5)
+                                .padding(.top, 6)
                             Text(thought)
-                                .font(.system(size: 13))
+                                .font(.system(size: 14))
                                 .foregroundColor(.white.opacity(0.9))
                                 .fixedSize(horizontal: false, vertical: true)
+                                .lineSpacing(4)
                         }
                     }
                 }
-                .padding(12)
+                .padding(14)
                 .background(Color.black.opacity(0.3))
                 .cornerRadius(8)
             }
             
             if let code = solution.code {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Solution")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                     
                     ScrollView([.horizontal, .vertical]) {
                         Text(code)
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundColor(.green.opacity(0.9))
-                            .padding(8)
+                            .font(.system(size: 15, design: .monospaced))
+                            .foregroundColor(.green)
+                            .padding(12)
                             .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                            .lineSpacing(6)
                     }
-                    .background(Color.black.opacity(0.5))
-                    .cornerRadius(4)
-                    .frame(height: min(CGFloat(code.components(separatedBy: "\n").count) * 18 + 16, 200))
+                    .background(Color.black.opacity(0.4))
+                    .cornerRadius(6)
+                    .frame(height: min(CGFloat(code.components(separatedBy: "\n").count) * 24 + 24, 350))
                 }
-                .padding(12)
+                .padding(14)
                 .background(Color.black.opacity(0.3))
                 .cornerRadius(8)
             }
             
             if let timeComplexity = solution.time_complexity, let spaceComplexity = solution.space_complexity {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Complexity Analysis")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                     HStack {
                         Text("Time: ")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                         Text(timeComplexity)
-                            .font(.system(size: 13))
+                            .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.9))
                     }
+                    .padding(.vertical, 2)
+                    
                     HStack {
                         Text("Space: ")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                         Text(spaceComplexity)
-                            .font(.system(size: 13))
+                            .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.9))
                     }
+                    .padding(.vertical, 2)
                 }
-                .padding(12)
+                .padding(14)
                 .background(Color.black.opacity(0.3))
                 .cornerRadius(8)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
     }
 }
 
@@ -351,79 +357,84 @@ struct SolutionDebugView: View {
     let solution: SolutionResult
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             if let thoughts = solution.thoughts, !thoughts.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("What I Changed")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                     ForEach(thoughts, id: \.self) { thought in
-                        HStack(alignment: .top) {
+                        HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "circle.fill")
                                 .font(.system(size: 6))
                                 .foregroundColor(.blue)
-                                .padding(.top, 5)
+                                .padding(.top, 6)
                             Text(thought)
-                                .font(.system(size: 13))
+                                .font(.system(size: 14))
                                 .foregroundColor(.white.opacity(0.9))
                                 .fixedSize(horizontal: false, vertical: true)
+                                .lineSpacing(4)
                         }
                     }
                 }
-                .padding(12)
+                .padding(14)
                 .background(Color.black.opacity(0.3))
                 .cornerRadius(8)
             }
             
             if let code = solution.new_code {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Improved Solution")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                     
                     ScrollView([.horizontal, .vertical]) {
                         Text(code)
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundColor(.green.opacity(0.9))
-                            .padding(8)
+                            .font(.system(size: 15, design: .monospaced))
+                            .foregroundColor(.green)
+                            .padding(12)
                             .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                            .lineSpacing(6)
                     }
-                    .background(Color.black.opacity(0.5))
-                    .cornerRadius(4)
-                    .frame(height: min(CGFloat(code.components(separatedBy: "\n").count) * 18 + 16, 200))
+                    .background(Color.black.opacity(0.4))
+                    .cornerRadius(6)
+                    .frame(height: min(CGFloat(code.components(separatedBy: "\n").count) * 24 + 24, 350))
                 }
-                .padding(12)
+                .padding(14)
                 .background(Color.black.opacity(0.3))
                 .cornerRadius(8)
             }
             
             if let timeComplexity = solution.time_complexity, let spaceComplexity = solution.space_complexity {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Complexity Analysis")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                     HStack {
                         Text("Time: ")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                         Text(timeComplexity)
-                            .font(.system(size: 13))
+                            .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.9))
                     }
+                    .padding(.vertical, 2)
+                    
                     HStack {
                         Text("Space: ")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                         Text(spaceComplexity)
-                            .font(.system(size: 13))
+                            .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.9))
                     }
+                    .padding(.vertical, 2)
                 }
-                .padding(12)
+                .padding(14)
                 .background(Color.black.opacity(0.3))
                 .cornerRadius(8)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
     }
 }

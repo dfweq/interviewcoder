@@ -144,7 +144,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Configure window properties
         window.titlebarAppearsTransparent = true
         window.isOpaque = false
-        window.backgroundColor = NSColor.black.withAlphaComponent(0.5) // More transparent
+        window.backgroundColor = NSColor.black.withAlphaComponent(0.25) // More transparent (reduced from 0.5)
         window.hasShadow = true
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -154,15 +154,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.standardWindowButton(.closeButton)?.isHidden = true
         window.standardWindowButton(.miniaturizeButton)?.isHidden = true
         window.standardWindowButton(.zoomButton)?.isHidden = true
-        
+
         // Create visual effect view for the background
         let visualEffectView = NSVisualEffectView()
-        visualEffectView.material = .hudWindow
+        visualEffectView.material = .windowBackground // Use modern semantic material
         visualEffectView.state = .active
         visualEffectView.blendingMode = .behindWindow
         visualEffectView.wantsLayer = true
         visualEffectView.layer?.cornerRadius = 12
         visualEffectView.layer?.masksToBounds = true
+        visualEffectView.layer?.opacity = 0.7 // Add opacity to make it more transparent
+
+        // Force dark appearance for better readability with transparency
+        visualEffectView.appearance = NSAppearance(named: .darkAqua)
         
         // Set up the content view with SwiftUI
         let contentView = NSHostingView(rootView: MainContentView())
