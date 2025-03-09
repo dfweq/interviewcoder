@@ -81,3 +81,5 @@ GNU
 ## Acknowledgements
 
 This application uses the OpenAI API to provide intelligent code solutions. It requires an active OpenAI API key with access to the GPT-4o model.
+
+This project was inspired by [interview-coder](https://github.com/ibttf/interview-coder)
