@@ -2,6 +2,12 @@
 
 Interview Coder is a macOS application designed to help developers practice and solve coding interview problems. It uses OpenAI's GPT-4o to analyze screenshots of coding problems and generate optimal solutions with detailed explanations.
 
+## Demo
+
+https://github.com/user-attachments/assets/5775d382-21e7-441b-8901-3a37c6b17a61
+
+
+
 ## Features
 
 - **Screenshot Capture**: Easily capture coding problems from any source
